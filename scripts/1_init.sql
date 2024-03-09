@@ -1,0 +1,4 @@
+CREATE TABLE "Keys" (
+    "Url" VARCHAR(255) NOT NULL,
+    "Key" VARCHAR(255) NOT NULL
+);
