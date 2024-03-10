@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/labstack/echo"
-	"github.com/lalizita/streaming-key-server-manager/db"
+	"github.com/lalizita/streaming-key-server-manager/config/db"
 	"github.com/lalizita/streaming-key-server-manager/internal/handler"
 	"github.com/lalizita/streaming-key-server-manager/internal/repository"
 	"github.com/lalizita/streaming-key-server-manager/internal/service"
