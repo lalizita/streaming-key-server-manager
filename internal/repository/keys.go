@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/labstack/gommon/log"
 	"github.com/lalizita/streaming-key-server-manager/internal/model"
@@ -14,7 +13,7 @@ var (
 )
 
 type KeysRepository interface {
-	FindStreamKey(url, key string) (*model.Keys, error)
+	FindStreamKey(name, key string) (*model.Keys, error)
 }
 
 type keysRepository struct {
@@ -27,17 +26,18 @@ func NewKeysRepository(db *sql.DB) KeysRepository {
 	}
 }
 
-func (r *keysRepository) FindStreamKey(url, key string) (*model.Keys, error) {
-	fmt.Printf("============ %s : %s", url, key)
+func (r *keysRepository) FindStreamKey(name, key string) (*model.Keys, error) {
 	keys := &model.Keys{}
-	row := r.QueryRow(`SELECT * FROM "Keys" WHERE "Url"=$1 AND "Key"=$2`, url, key)
+	row := r.QueryRow(`SELECT * FROM "Keys" WHERE "Name"=$1 AND "Key"=$2`, name, key)
 
-	err := row.Scan(&keys.Url, &keys.Key)
+	err := row.Scan(&keys.Name, &keys.Key)
 	if err != nil {
 		log.Error(err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return &model.Keys{}, nil
+		}
 		return &model.Keys{}, QueryErr
 	}
 
-	log.Info("Here is the keys", keys)
 	return keys, nil
 }

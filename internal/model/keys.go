@@ -1,6 +1,6 @@
 package model
 
 type Keys struct {
-	Url string `json:"Url"`
-	Key string `json:"Key"`
+	Name string `json:"Name"`
+	Key  string `json:"Key"`
 }

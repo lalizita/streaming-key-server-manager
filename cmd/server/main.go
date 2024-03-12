@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/labstack/echo"
 	"github.com/lalizita/streaming-key-server-manager/config/db"
@@ -11,7 +12,6 @@ import (
 )
 
 func main() {
-	//conectar o banco
 	db, err := db.OpenConn()
 	if err != nil {
 		log.Fatalf("Error connect database")
@@ -22,7 +22,12 @@ func main() {
 	keysService := service.NewKeysService(keyRepository)
 	keysHandler := handler.NewHandler(keysService)
 
+	log.Default().Println("Routing...")
 	e := echo.New()
-	e.GET("/:url_key", keysHandler.GetStreamingKey)
+	e.POST("/auth", keysHandler.AuthStreamingKey)
+
+	e.GET("/healthcheck", func(ctx echo.Context) error {
+		return ctx.String(http.StatusOK, "working")
+	})
 	e.Logger.Fatal(e.Start(":8000"))
 }

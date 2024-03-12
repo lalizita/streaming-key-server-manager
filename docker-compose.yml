@@ -6,7 +6,9 @@ services:
       - streams-volume:/hls/live
     ports:
       - "1935:1935"
-  delivery-server:
+    depends_on:
+      - auth_server
+  auth_server:
     build:
       dockerfile: ./Dockerfile
       context: .
@@ -18,9 +20,11 @@ services:
       postgres:
       # wait for postgres
         condition: service_healthy
+
   postgres:
     image: postgres
     restart: always
+    hostname: postgres
     volumes:
       - ./scripts/1_init.sql:/docker-entrypoint-initdb.d/1_init.sql
       - ./scripts/2_stream_keys_populate.sql:/docker-entrypoint-initdb.d/2_stream_keys_populate.sql
@@ -29,6 +33,7 @@ services:
       POSTGRES_DB: "streamkeys"
     ports:
       - "5432:5432"
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
@@ -36,3 +41,7 @@ services:
       retries: 30
 volumes:
   streams-volume:
+
+networks:
+  default:
+    name: streaming-server

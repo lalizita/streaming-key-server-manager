@@ -6,7 +6,7 @@ import (
 )
 
 type KeysService interface {
-	GetStreamingKey(url, key string) (*model.Keys, error)
+	AuthStreamingKey(name, key string) (*model.Keys, error)
 }
 
 type keysService struct {
@@ -19,6 +19,6 @@ func NewKeysService(repo repository.KeysRepository) KeysService {
 	}
 }
 
-func (s *keysService) GetStreamingKey(url, key string) (*model.Keys, error) {
-	return s.keysRepository.FindStreamKey(url, key)
+func (s *keysService) AuthStreamingKey(name, key string) (*model.Keys, error) {
+	return s.keysRepository.FindStreamKey(name, key)
 }
