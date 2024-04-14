@@ -28,7 +28,7 @@ func NewKeysRepository(db *sql.DB) KeysRepository {
 
 func (r *keysRepository) FindStreamKey(name, key string) (*model.Keys, error) {
 	keys := &model.Keys{}
-	row := r.QueryRow(`SELECT * FROM "Keys" WHERE "Name"=$1 AND "Key"=$2`, name, key)
+	row := r.QueryRow(`SELECT * FROM "Lives" WHERE "name"=$1 AND "stream_key"=$2`, name, key)
 
 	err := row.Scan(&keys.Name, &keys.Key)
 	if err != nil {

@@ -38,9 +38,11 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 	}
 
 	if keys.Key != "" {
+		log.Default().Println("User authenticated")
 		return ctx.String(http.StatusOK, "Ok")
 	}
 
+	log.Default().Println("Forbidden User")
 	return ctx.String(http.StatusForbidden, "")
 }
 
