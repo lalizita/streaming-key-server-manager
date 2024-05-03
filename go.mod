@@ -1,11 +1,14 @@
 module github.com/lalizita/streaming-key-server-manager
 
-go 1.21.4
+go 1.22
+
+toolchain go1.22.2
 
 require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.4.2
 	github.com/lib/pq v1.10.9
+	github.com/sethvargo/go-envconfig v1.0.1
 )
 
 require (
