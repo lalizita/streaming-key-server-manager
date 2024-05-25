@@ -1,6 +1,6 @@
 package model
 
 type Keys struct {
-	Name string `json:"Name"`
-	Key  string `json:"Key"`
+	Name string `json:"name"`
+	Key  string `json:"stream_key"`
 }

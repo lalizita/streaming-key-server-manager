@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -30,6 +31,7 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 	body := ctx.Request().Body
 	defer body.Close()
 	fields, _ := io.ReadAll(body)
+	fmt.Println("=====", string(fields))
 	authValues := getKeyValues(fields)
 
 	keys, err := h.KeysService.AuthStreamingKey(authValues.Name, authValues.Key)

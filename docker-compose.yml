@@ -1,25 +1,43 @@
 services:
-  nginx:
+  nginx_server:
     image: tiangolo/nginx-rtmp:latest
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - streams-volume:/hls/live
+      - streams-volume:/tmp/hls/live
     ports:
       - "1935:1935"
     depends_on:
       - auth_server
   auth_server:
     build:
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.auth
       context: .
     volumes:
-      - streams-volume:/hls/live
+      - streams-volume:/tmp/hls/live
     ports:
       - "8000:8000"
+    hostname: auth_server
+    environment:
+      POSTGRES_PASSWORD: password!
+      POSTGRES_USER: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: streamkeys
     depends_on:
       postgres:
       # wait for postgres
         condition: service_healthy
+  playback_server:
+    build:
+      dockerfile: ./Dockerfile.playback
+      context: .
+    volumes:
+      - streams-volume:/tmp/hls/live
+    ports:
+      - "8001:8001"
+    depends_on:
+      - auth_server
+      - nginx_server
 
   postgres:
     image: postgres
