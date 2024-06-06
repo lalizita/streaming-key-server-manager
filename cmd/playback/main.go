@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -20,22 +21,20 @@ func serveStream() echo.HandlerFunc {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
 
-		// Iterate over directory entries and print directory names
+		// Iterate over directory entries and find the directory matching the pattern "nameoflive_*"
 		streamURL := ""
 		for _, entry := range dirEntries {
-			if entry.IsDir() {
+			if entry.IsDir() && strings.HasPrefix(entry.Name(), streamName+"_") {
 				fmt.Println(entry.Name())
-				streamPath, err := findStreamDirectory(entry.Name(), streamName)
-				fmt.Println("=========>", streamPath)
-				if err != nil {
-					return c.String(http.StatusInternalServerError, err.Error())
-				}
-
+				streamPath := filepath.Join(entry.Name(), c.Param("*"))
 				streamURL = fmt.Sprintf("/tmp/hls/%s", streamPath)
 				break
 			}
 		}
-		fmt.Println(streamURL)
+
+		if streamURL == "" {
+			return c.String(http.StatusNotFound, "Stream not found")
+		}
 
 		return c.File(streamURL)
 	}
