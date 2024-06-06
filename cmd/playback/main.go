@@ -1,96 +1,56 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 )
 
+// serveStream handles the streaming requests
 func serveStream() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		streamName := c.Param("live")
 
 		dirEntries, err := os.ReadDir("/tmp/hls")
 		if err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+			log.Printf("Failed to read directory: %v", err)
+			return c.String(http.StatusInternalServerError, "Internal server error")
 		}
 
-		// Iterate over directory entries and print directory names
-		streamURL := ""
+		// Find the directory matching the pattern "nameoflive_*"
+		var streamURL string
 		for _, entry := range dirEntries {
-			if entry.IsDir() {
-				fmt.Println(entry.Name())
-				streamPath, err := findStreamDirectory(entry.Name(), streamName)
-				fmt.Println("=========>", streamPath)
-				if err != nil {
-					return c.String(http.StatusInternalServerError, err.Error())
-				}
-
-				streamURL = fmt.Sprintf("/tmp/hls/%s", streamPath)
+			if entry.IsDir() && strings.HasPrefix(entry.Name(), streamName+"_") {
+				streamPath := filepath.Join("/tmp/hls", entry.Name(), c.Param("*"))
+				streamURL = streamPath
 				break
 			}
 		}
-		fmt.Println(streamURL)
+
+		if streamURL == "" {
+			return c.String(http.StatusNotFound, "Stream not found")
+		}
 
 		return c.File(streamURL)
 	}
 }
 
-func findLiveStream(c echo.Context) error {
-	streamName := c.Param("live")
-
-	dirEntries, err := os.ReadDir("/tmp/hls")
-	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
-	}
-
-	// Iterate over directory entries and print directory names
-	streamURL := ""
-	for _, entry := range dirEntries {
-		if entry.IsDir() {
-			fmt.Println(entry.Name())
-			streamPath, err := findStreamDirectory(entry.Name(), streamName)
-			fmt.Println("=========>", streamPath)
-			if err != nil {
-				return c.String(http.StatusInternalServerError, err.Error())
-			}
-
-			streamURL = fmt.Sprintf("/tmp/hls/%s", streamPath)
-			break
-		}
-	}
-	fmt.Println(streamURL)
-	return c.String(http.StatusOK, streamURL)
-}
-
 func main() {
-	log.Default().Println("Routing...")
 	e := echo.New()
-	// e.Static("/live", "/tmp/hls/live/livetopzera")
+	log.Println("Routing...")
+
 	e.GET("/live/:live", serveStream())
 	e.GET("/live/:live/*", serveStream())
 
-	e.GET("/healthcheck", func(ctx echo.Context) error {
-		return ctx.String(http.StatusOK, "working")
+	e.GET("/healthcheck", func(c echo.Context) error {
+		return c.String(http.StatusOK, "working")
 	})
-	e.Logger.Fatal(e.Start(":8001"))
-}
 
-func findStreamDirectory(dirName, name string) (string, error) {
-	// Split the input string based on '_'
-	parts := strings.Split(dirName, "_")
-
-	if len(parts) == 0 || parts[0] == "" {
-		return "", errors.New("stream directory not found")
+	if err := e.Start(":8001"); err != nil {
+		e.Logger.Fatal("Shutting down the server: ", err)
 	}
-
-	if parts[0] == name {
-		return dirName, nil
-	}
-	return "", errors.New("error finding stream")
 }
