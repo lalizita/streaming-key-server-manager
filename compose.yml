@@ -1,0 +1,72 @@
+services:
+
+  nginx:
+    image: tiangolo/nginx-rtmp:latest
+    container_name: sks_nginx
+    hostname: nginx_server
+    volumes:
+      - ./docker/nginx/config/nginx.conf:/etc/nginx/nginx.conf
+      - streams-volume:/tmp/hls
+    ports:
+      - "1935:1935"
+    depends_on:
+      - auth
+
+  auth:
+    build:
+      dockerfile: ./docker/auth/Dockerfile
+      context: .
+      args:
+        GOARCH: ${GOARCH}
+    container_name: sks_auth
+    ports:
+      - "8000:8000"
+    hostname: auth_server
+    environment:
+      POSTGRES_PASSWORD: password!
+      POSTGRES_USER: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: streamkeys
+    depends_on:
+      postgres:
+        # wait for postgres
+        condition: service_healthy
+
+  playback:
+     build:
+       dockerfile: ./docker/playback/Dockerfile
+       context: .
+     container_name: sks_playback
+     volumes:
+       - streams-volume:/tmp/hls
+     ports:
+       - "8001:8001"
+     depends_on:
+       - auth
+       - nginx
+
+  postgres:
+    image: postgres
+    container_name: sks_postgres
+    hostname: postgres
+    volumes:
+      - ./docker/postgres/initdb.d/1_init.sql:/docker-entrypoint-initdb.d/1_init.sql
+      - ./docker/postgres/initdb.d/2_stream_keys_populate.sql:/docker-entrypoint-initdb.d/2_stream_keys_populate.sql
+    environment:
+      POSTGRES_PASSWORD: "password!"
+      POSTGRES_DB: "streamkeys"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  streams-volume:
+
+networks:
+  default:
+    name: streaming-server
