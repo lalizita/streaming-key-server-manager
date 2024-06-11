@@ -14,28 +14,14 @@ import (
 func serveStream() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		streamName := c.Param("live")
+		filePath := c.Param("*")
 
-		dirEntries, err := os.ReadDir("/tmp/hls")
-		if err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+		if filePath == "" {
+			filePath = "index.m3u8"
 		}
 
-		// Iterate over directory entries and print directory names
-		streamURL := ""
-		for _, entry := range dirEntries {
-			if entry.IsDir() {
-				fmt.Println(entry.Name())
-				streamPath, err := findStreamDirectory(entry.Name(), streamName)
-				fmt.Println("=========>", streamPath)
-				if err != nil {
-					return c.String(http.StatusInternalServerError, err.Error())
-				}
-
-				streamURL = fmt.Sprintf("/tmp/hls/%s", streamPath)
-				break
-			}
-		}
-		fmt.Println(streamURL)
+		streamURL := fmt.Sprintf("/tmp/hls/%s/%s", streamName, filePath)
+		log.Println("Stream file requested:", streamURL)
 
 		return c.File(streamURL)
 	}

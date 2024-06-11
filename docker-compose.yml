@@ -1,21 +1,18 @@
 services:
-  nginx_server:
-    build:
-        dockerfile: ./Dockerfile.playback
-        context: .
-    # image: tiangolo/nginx-rtmp:latest
+  streaming_server:
+    image: tiangolo/nginx-rtmp:latest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./streaming-server/nginx.conf:/etc/nginx/nginx.conf
       - streams-volume:/tmp/hls
     ports:
       - "1935:1935"
-      - "8001:8001"
     depends_on:
       - auth_server
+
   auth_server:
     build:
-      dockerfile: ./Dockerfile.auth
-      context: .
+      context: auth-app
+      dockerfile: Dockerfile
     volumes:
       - streams-volume:/tmp/hls
     ports:
@@ -29,38 +26,35 @@ services:
       POSTGRES_DB: streamkeys
     depends_on:
       postgres:
-      # wait for postgres
+        # wait for postgres
         condition: service_healthy
-  # playback_server:
-  #   build:
-  #     dockerfile: ./Dockerfile.playback
-  #     context: .
-  #   volumes:
-  #     - streams-volume:/tmp/hls
-  #   ports:
-  #     - "8001:8001"
-  #   depends_on:
-  #     - auth_server
-  #     - nginx_server
+
+  playback_server:
+    build:
+      context: playback-app
+      dockerfile: Dockerfile
+    volumes:
+      - streams-volume:/tmp/hls
+    ports:
+      - "8001:8001"
 
   postgres:
     image: postgres
     restart: always
     hostname: postgres
     volumes:
-      - ./scripts/1_init.sql:/docker-entrypoint-initdb.d/1_init.sql
-      - ./scripts/2_stream_keys_populate.sql:/docker-entrypoint-initdb.d/2_stream_keys_populate.sql
+      - ./postgres/entrypoint/:/docker-entrypoint-initdb.d/
     environment:
       POSTGRES_PASSWORD: "password!"
       POSTGRES_DB: "streamkeys"
     ports:
       - "5432:5432"
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
       timeout: 2s
       retries: 30
+
 volumes:
   streams-volume:
 
