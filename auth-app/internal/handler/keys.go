@@ -41,14 +41,12 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 
 	if keys.Key != "" {
 		log.Default().Println("User authenticated")
-
 		log.Println("Name:", authValues.Name)
-		log.Println("Addr:", authValues.Addr)
 
 		// According to the nginx rtmp module the redirect url must use an IP address
 		// If not set the query parameter "name", at least in my tests, the name of the
 		// directory created for hls is not changed
-		newStreamURL := fmt.Sprintf("rtmp://%s:1935/hls-live/%s?name=%s", authValues.Addr, authValues.Name, authValues.Name)
+		newStreamURL := fmt.Sprintf("rtmp://127.0.0.1:1935/hls-live/%s?name=%s", authValues.Name, authValues.Name)
 		log.Println("Redirecting to:", newStreamURL)
 
 		// Respond with a 302 redirect to the new stream URL
@@ -73,9 +71,6 @@ func getKeyValues(s []byte) model.Keys {
 			s := strings.Split(value, "_")
 			authValues.Name = s[0]
 			authValues.Key = s[1]
-		}
-		if key == "addr" {
-			authValues.Addr = value
 		}
 	}
 	return authValues
