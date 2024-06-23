@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -27,51 +26,41 @@ func NewHandler(s service.KeysService) *keysHandler {
 }
 
 func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
-	log.Default().Println("Auth...")
-	body := ctx.Request().Body
-	defer body.Close()
-	fields, _ := io.ReadAll(body)
-	log.Println("=====", string(fields))
-	authValues := getKeyValues(fields)
+	inputLivename := ctx.Request().PostFormValue("name")
+	authValues := extractStreamingKeyValues(inputLivename)
+	if authValues == nil {
+		log.Println("Invalid input livename format:", inputLivename)
+		return ctx.JSON(http.StatusBadRequest, "Invalid input livename format")
+	}
 
 	keys, err := h.KeysService.AuthStreamingKey(authValues.Name, authValues.Key)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, "Error findind key")
+		return ctx.JSON(http.StatusInternalServerError, "Error finding stream key")
 	}
 
-	if keys.Key != "" {
-		log.Default().Println("User authenticated")
-		log.Println("Name:", authValues.Name)
-
-		// According to the nginx rtmp module the redirect url must use an IP address
-		// If not set the query parameter "name", at least in my tests, the name of the
-		// directory created for hls is not changed
-		newStreamURL := fmt.Sprintf("rtmp://127.0.0.1:1935/hls-live/%s?name=%s", authValues.Name, authValues.Name)
-		log.Println("Redirecting to:", newStreamURL)
-
-		// Respond with a 302 redirect to the new stream URL
-		return ctx.Redirect(http.StatusFound, newStreamURL)
+	if keys.Key == "" {
+		log.Println("Forbidden User, live not found:", authValues.Name)
+		return ctx.String(http.StatusForbidden, "")
 	}
 
-	log.Default().Println("Forbidden User")
-	return ctx.String(http.StatusForbidden, "")
+	log.Println("User authenticated, livename:", authValues.Name)
+
+	// According to nginx-rtmp docs the redirect url must use an IP address
+	newStreamURL := fmt.Sprintf("rtmp://127.0.0.1:1935/hls-live/%s", authValues.Name)
+	log.Println("Redirecting to:", newStreamURL)
+
+	// Respond with a 302 redirect to the new stream URL
+	return ctx.Redirect(http.StatusFound, newStreamURL)
 }
 
-func getKeyValues(s []byte) model.Keys {
-	var authValues model.Keys
-	pairs := strings.Split(string(s), "&")
-
-	for _, pair := range pairs {
-		parts := strings.Split(pair, "=")
-		key := parts[0]
-		value := parts[1]
-
-		if key == "name" {
-			// TODO: Fix the following considering that the name can also contain an underscore
-			s := strings.Split(value, "_")
-			authValues.Name = s[0]
-			authValues.Key = s[1]
-		}
+func extractStreamingKeyValues(inputLivename string) *model.Keys {
+	lastUnderscoreIndex := strings.LastIndex(inputLivename, "_")
+	if lastUnderscoreIndex == -1 {
+		return nil
 	}
-	return authValues
+
+	return &model.Keys{
+		Name: inputLivename[:lastUnderscoreIndex],
+		Key:  inputLivename[lastUnderscoreIndex+1:],
+	}
 }
