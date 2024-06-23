@@ -24,7 +24,7 @@ func main() {
 
 	db, err := db.OpenConn(envConfig)
 	if err != nil {
-		log.Fatalf("Error connect database")
+		log.Fatalf("Error connecting to the database")
 	}
 
 	//init
@@ -32,7 +32,7 @@ func main() {
 	keysService := service.NewKeysService(keyRepository)
 	keysHandler := handler.NewHandler(keysService)
 
-	log.Default().Println("Routing...")
+	log.Println("Routing...")
 	e := echo.New()
 	e.POST("/auth", keysHandler.AuthStreamingKey)
 

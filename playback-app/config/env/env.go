@@ -6,4 +6,6 @@ type EnvConfig struct {
 	PostgrePass  string `env:"POSTGRES_PASSWORD"`
 	PostgresDB   string `env:"POSTGRES_DB"`
 	PostgresPort string `env:"POSTGRES_PORT"`
+
+	StreamBaseFilePath string `env:"STREAM_BASE_FILEPATH"`
 }

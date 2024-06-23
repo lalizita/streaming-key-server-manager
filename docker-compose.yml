@@ -35,6 +35,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - streams-volume:/tmp/hls
+    environment:
+      STREAM_BASE_FILEPATH: "/tmp/hls"
     ports:
       - "8001:8001"
 
