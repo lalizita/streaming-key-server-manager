@@ -31,7 +31,6 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 	body := ctx.Request().Body
 	defer body.Close()
 	fields, _ := io.ReadAll(body)
-	fmt.Println("=====", string(fields))
 	authValues := getKeyValues(fields)
 
 	keys, err := h.KeysService.AuthStreamingKey(authValues.Name, authValues.Key)
@@ -39,13 +38,20 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, "Error findind key")
 	}
 
-	if keys.Key != "" {
-		log.Default().Println("User authenticated")
-		return ctx.String(http.StatusOK, "Ok")
+	if keys.Key == "" {
+		log.Default().Println("Forbidden User")
+		return ctx.String(http.StatusForbidden, "")
 	}
 
-	log.Default().Println("Forbidden User")
-	return ctx.String(http.StatusForbidden, "")
+	log.Println("User authenticated, livename:", authValues.Name)
+
+	// According to nginx-rtmp docs the redirect url must use an IP address
+	newStreamURL := fmt.Sprintf("rtmp://127.0.0.1:1935/hls-live/%s", authValues.Name)
+	log.Println("Redirecting to:", newStreamURL)
+
+	// Respond with a 302 redirect to the new stream URL
+	return ctx.Redirect(http.StatusFound, newStreamURL)
+
 }
 
 func getKeyValues(s []byte) model.Keys {
