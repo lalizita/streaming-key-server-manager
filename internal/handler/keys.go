@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -26,10 +27,10 @@ func NewHandler(s service.KeysService) *keysHandler {
 }
 
 func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
-	log.Default().Println("Auth...")
 	body := ctx.Request().Body
 	defer body.Close()
 	fields, _ := io.ReadAll(body)
+	log.Default().Println("Auth...", fields)
 	authValues := getKeyValues(fields)
 
 	keys, err := h.KeysService.AuthStreamingKey(authValues.Name, authValues.Key)
@@ -37,13 +38,16 @@ func (h *keysHandler) AuthStreamingKey(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, "Error findind key")
 	}
 
-	if keys.Key != "" {
-		log.Default().Println("User authenticated")
-		return ctx.String(http.StatusOK, "Ok")
+	if keys.Key == "" {
+		log.Default().Println("Forbidden User")
+		return ctx.String(http.StatusForbidden, "")
 	}
 
-	log.Default().Println("Forbidden User")
-	return ctx.String(http.StatusForbidden, "")
+	log.Default().Println("User authenticated")
+
+	newStreamURL := fmt.Sprintf("rtmp://127.0.0.1:1935/hls-live/%s", keys.Name)
+	log.Default().Println("Redirecting to:", newStreamURL)
+	return ctx.Redirect(http.StatusFound, newStreamURL)
 }
 
 func getKeyValues(s []byte) model.Keys {
